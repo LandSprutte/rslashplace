@@ -110,13 +110,11 @@
   /* Swatches: the two fixed extremes, then the colors you last painted with. */
   .swatch-group { width: 100%; display: flex; flex-direction: column; gap: 6px; }
   .swatch-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .swatch-bar { display: flex; gap: 6px; }
-  .recents { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .swatch-bar, .recents { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
   .swatch {
     padding: 0; min-height: 0; aspect-ratio: 1 / 1;
     border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
   }
-  .swatch-bar .swatch { width: 34px; flex: none; }
   /* Inline background beats button:hover, so the hover cue has to be an outline. */
   .swatch:hover { outline: 2px solid #5b8cff; outline-offset: 1px; }
   .swatch.empty { background: transparent; border-style: dashed; cursor: default; }
@@ -194,7 +192,6 @@
     .legend-touch { display: flex; }
     .hint-touch { display: block; }
     button { min-height: 44px; }
-    .swatch-bar .swatch { width: 44px; }
     .recents, .swatch-bar { gap: 8px; }
     .zoom button { font-size: 18px; }
     input[type="range"] { height: 28px; }
