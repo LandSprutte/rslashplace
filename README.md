@@ -76,6 +76,45 @@ ssh root@<ip> 'printf "HOST=0.0.0.0\nPORT=3000\n" > /etc/default/rslashplace \
 Use `HOST=127.0.0.1` for proxied, `HOST=0.0.0.0` for direct. `deploy.sh` never
 overwrites this file, so redeploys keep whichever mode you chose.
 
+### Starting it from the VPS itself
+
+The flow above pushes from your laptop. If you'd rather clone the repo onto the
+instance and work there, do it all on the box:
+
+```sh
+ssh root@<instance-ip>
+apt-get update && apt-get install -y git
+git clone <your-repo-url> /srv/rslashplace && cd /srv/rslashplace
+
+bash deploy/install-local.sh --direct        # or --direct --port 80, or bare for proxied
+```
+
+That provisions (Bun, service user, firewall), copies `server.ts` + `index.html`
+into `/opt/rslashplace`, installs the systemd unit, and starts the service. Safe
+to re-run after a `git pull` to ship changes.
+
+Once installed — by either route — the service is managed with systemd and
+starts on boot automatically:
+
+```sh
+systemctl start rslashplace
+systemctl stop rslashplace
+systemctl restart rslashplace
+systemctl enable rslashplace     # start at boot (install scripts already do this)
+```
+
+To run it in the foreground instead, for a quick look at what it prints:
+
+```sh
+systemctl stop rslashplace       # free the port first
+cd /opt/rslashplace
+HOST=0.0.0.0 PORT=3000 DATA_FILE=/var/lib/rslashplace/canvas.json bun server.ts
+```
+
+Ctrl-C stops it; the canvas is flushed to disk on the way out. Use this only for
+debugging — it dies with your SSH session, which is the whole reason the systemd
+unit exists.
+
 ### Operating it
 
 ```sh
