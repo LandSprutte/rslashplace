@@ -33,14 +33,33 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq curl unzip ca-certificates rsync
 
+echo "==> Creating service user and directories"
+id -u "$APP_USER" >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin "$APP_USER"
+mkdir -p "$APP_DIR" "$DATA_DIR"
+chown -R "$APP_USER:$APP_USER" "$APP_DIR" "$DATA_DIR"
+
 echo "==> Installing Bun to /usr/local/bin"
-if ! command -v bun >/dev/null 2>&1; then
-	# The official installer drops Bun in $HOME/.bun; symlink it somewhere
-	# systemd can see regardless of which user runs the service.
+# BUN_INSTALL makes the installer write a real binary to /usr/local/bin/bun.
+# Do NOT symlink into $HOME/.bun instead: /root is mode 700 and the unit sets
+# ProtectHome=true, so the service user cannot resolve such a link and systemd
+# fails the unit with status=203/EXEC.
+if [[ ! -x /usr/local/bin/bun || -L /usr/local/bin/bun ]]; then
+	rm -f /usr/local/bin/bun          # clear any dangling symlink from older runs
+	export BUN_INSTALL=/usr/local
 	curl -fsSL https://bun.sh/install | bash
-	ln -sf "$HOME/.bun/bin/bun" /usr/local/bin/bun
+fi
+
+# Verify as the service user, not as root -- running it as root is what let the
+# broken symlink pass provisioning and then fail at service start.
+if [[ -L /usr/local/bin/bun ]]; then
+	echo "ERROR: /usr/local/bin/bun is a symlink; it must be a real file." >&2
+	exit 1
 fi
 /usr/local/bin/bun --version
+# -s overrides the account's nologin shell.
+su -s /bin/sh -c '/usr/local/bin/bun --version' "$APP_USER" >/dev/null \
+	|| { echo "ERROR: $APP_USER cannot execute /usr/local/bin/bun" >&2; exit 1; }
+echo "    ok: $APP_USER can execute bun"
 
 if [[ $MODE == proxied ]]; then
 	echo "==> Installing Caddy (TLS + reverse proxy)"
@@ -57,11 +76,6 @@ if [[ $MODE == proxied ]]; then
 else
 	echo "==> Skipping Caddy (direct mode)"
 fi
-
-echo "==> Creating service user and directories"
-id -u "$APP_USER" >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin "$APP_USER"
-mkdir -p "$APP_DIR" "$DATA_DIR"
-chown -R "$APP_USER:$APP_USER" "$APP_DIR" "$DATA_DIR"
 
 echo "==> Writing /etc/default/rslashplace"
 if [[ $MODE == direct ]]; then

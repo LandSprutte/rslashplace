@@ -21,14 +21,22 @@ rsync -avz --chown=rslashplace:rslashplace \
 echo "==> Installing systemd unit"
 rsync -avz "$REPO_ROOT/deploy/rslashplace.service" "$TARGET:/etc/systemd/system/rslashplace.service"
 
-# Only push the proxy config if setup.sh actually installed Caddy. In direct
-# mode there is no Caddy and nothing to configure. /etc/default/rslashplace is
-# written by setup.sh and left alone here, so redeploys never change the mode.
-if ssh "$TARGET" 'command -v caddy >/dev/null 2>&1'; then
-	echo "==> Caddy present -- updating proxy config"
+# Decide by the mode recorded on the host, not by whether Caddy is installed --
+# a box provisioned proxied once still has Caddy, and pushing a proxy config in
+# direct mode breaks Caddy for a domain that is not in use.
+# /etc/default/rslashplace is written by setup.sh and left alone here, so
+# redeploys never change the mode.
+REMOTE_HOST_BIND="$(ssh "$TARGET" '. /etc/default/rslashplace 2>/dev/null; echo "${HOST:-}"')"
+if [[ $REMOTE_HOST_BIND == "127.0.0.1" ]]; then
+	if grep -q 'place\.example\.com' "$REPO_ROOT/deploy/Caddyfile"; then
+		echo "ERROR: deploy/Caddyfile still has the placeholder domain." >&2
+		echo "       Replace place.example.com with your real domain." >&2
+		exit 1
+	fi
+	echo "==> Proxied mode -- updating Caddy config"
 	rsync -avz "$REPO_ROOT/deploy/Caddyfile" "$TARGET:/etc/caddy/Caddyfile"
 else
-	echo "==> No Caddy on host (direct mode) -- skipping proxy config"
+	echo "==> Direct mode (HOST=${REMOTE_HOST_BIND:-unset}) -- skipping proxy config"
 fi
 
 echo "==> Restarting services"
@@ -36,7 +44,8 @@ ssh "$TARGET" bash -euo pipefail <<'REMOTE'
 systemctl daemon-reload
 systemctl enable --now rslashplace
 systemctl restart rslashplace
-if command -v caddy >/dev/null 2>&1; then
+. /etc/default/rslashplace 2>/dev/null || true
+if [[ ${HOST:-} == "127.0.0.1" ]] && command -v caddy >/dev/null 2>&1; then
 	caddy validate --config /etc/caddy/Caddyfile
 	systemctl reload caddy || systemctl restart caddy
 fi

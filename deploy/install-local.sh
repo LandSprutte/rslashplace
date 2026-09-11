@@ -29,11 +29,27 @@ install -o "$APP_USER" -g "$APP_USER" -m 644 "$REPO_ROOT/index.html" "$APP_DIR/i
 echo "==> Installing systemd unit"
 install -m 644 "$REPO_ROOT/deploy/rslashplace.service" /etc/systemd/system/rslashplace.service
 
-if command -v caddy >/dev/null 2>&1; then
-	echo "==> Caddy present -- installing proxy config"
+# Decide by MODE, not by whether Caddy happens to be installed. A box that was
+# once provisioned proxied still has Caddy on it; pushing a proxy config there
+# in direct mode breaks Caddy for a domain you are not even using.
+# shellcheck disable=SC1091
+. /etc/default/rslashplace
+if [[ ${HOST:-} == "127.0.0.1" ]]; then
+	if grep -q 'place\.example\.com' "$REPO_ROOT/deploy/Caddyfile"; then
+		echo "ERROR: deploy/Caddyfile still has the placeholder domain." >&2
+		echo "       Replace place.example.com with your real domain, or use --direct." >&2
+		exit 1
+	fi
+	echo "==> Proxied mode -- installing Caddy config"
 	install -m 644 "$REPO_ROOT/deploy/Caddyfile" /etc/caddy/Caddyfile
 	caddy validate --config /etc/caddy/Caddyfile
 	systemctl reload caddy || systemctl restart caddy
+elif systemctl list-unit-files caddy.service >/dev/null 2>&1 \
+	&& systemctl is-enabled caddy >/dev/null 2>&1; then
+	# Direct mode: a leftover Caddy would fail on the placeholder domain and
+	# squat ports 80/443. Stop it; the app is served directly.
+	echo "==> Direct mode -- disabling leftover Caddy"
+	systemctl disable --now caddy || true
 fi
 
 echo "==> Starting service"

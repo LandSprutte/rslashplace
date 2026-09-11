@@ -127,6 +127,37 @@ Canvas state is written to `/var/lib/rslashplace/canvas.json` — debounced 2s
 while drawing, and flushed on SIGTERM — so restarts and redeploys don't wipe it.
 Delete that file to reset the canvas.
 
+### Troubleshooting
+
+**`status=203/EXEC`** — systemd cannot execute `/usr/local/bin/bun`. Almost
+always because Bun was symlinked into `/root/.bun`: `/root` is mode 700 and the
+unit sets `ProtectHome=true`, so the service user cannot resolve it. Note that
+`bun --version` as root still works, which is why this slips through. Fix:
+
+```sh
+rm -f /usr/local/bin/bun
+BUN_INSTALL=/usr/local bash -c 'curl -fsSL https://bun.sh/install | bash'
+su -s /bin/sh -c '/usr/local/bin/bun --version' rslashplace   # must print a version
+systemctl restart rslashplace
+```
+
+`/usr/local/bin/bun` must be a real file, not a symlink.
+
+**Caddy fails to start after switching to direct mode** — a box provisioned
+proxied still has Caddy installed, and it will fail trying to get a certificate
+for whatever domain is in `/etc/caddy/Caddyfile`. In direct mode Caddy is not
+used at all:
+
+```sh
+systemctl disable --now caddy
+```
+
+**Nothing responds on `http://<ip>:<port>`** — check in this order: the service
+is running (`systemctl status rslashplace`), it is bound to `0.0.0.0` and not
+`127.0.0.1` (`cat /etc/default/rslashplace`), the host firewall allows the port
+(`ufw status`), and the **Scaleway security group** allows it. That last one is
+a separate layer from ufw and is the most common cause.
+
 ### Environment variables
 
 | Var | Default | Purpose |

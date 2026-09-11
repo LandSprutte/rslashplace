@@ -64,6 +64,9 @@
   }
   #canvas { background: #fff; }
   #overlay { cursor: crosshair; touch-action: none; }
+  body.eyedrop #overlay {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg stroke='%23000' stroke-width='4' stroke-linejoin='round' fill='none'%3E%3Cpath d='M4 22L5 18 16 7l3 3-11 11z'/%3E%3Cpath d='M17 6l3 3 2-2a2.1 2.1 0 0 0-3-3z'/%3E%3C/g%3E%3Cg fill='%23fff' stroke='%23000' stroke-width='1.4' stroke-linejoin='round'%3E%3Cpath d='M4 22L5 18 16 7l3 3-11 11z'/%3E%3Cpath d='M17 6l3 3 2-2a2.1 2.1 0 0 0-3-3z'/%3E%3C/g%3E%3C/svg%3E") 4 22, crosshair;
+  }
   /* Remote cursor layer (in viewport space, so labels stay a constant size) */
   #cursors { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
   .cursor { position: absolute; top: 0; left: 0; will-change: transform; }
@@ -104,7 +107,27 @@
     align-items: center;
   }
   #wheel { cursor: crosshair; border-radius: 50%; touch-action: none; max-width: 100%; }
-  .preview { width: 100%; height: 44px; border-radius: 8px; border: 1px solid var(--border); }
+  /* Swatches: the two fixed extremes, then the colors you last painted with. */
+  .swatch-group { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+  .swatch-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .swatch-bar { display: flex; gap: 6px; }
+  .recents { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .swatch {
+    padding: 0; min-height: 0; aspect-ratio: 1 / 1;
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+  }
+  .swatch-bar .swatch { width: 34px; flex: none; }
+  /* Inline background beats button:hover, so the hover cue has to be an outline. */
+  .swatch:hover { outline: 2px solid #5b8cff; outline-offset: 1px; }
+  .swatch.empty { background: transparent; border-style: dashed; cursor: default; }
+  .swatch.empty:hover { outline: none; }
+  .preview-row { width: 100%; display: flex; gap: 8px; align-items: stretch; }
+  .preview { flex: 1; min-width: 0; height: 44px; border-radius: 8px; border: 1px solid var(--border); }
+  /* Eyedropper toggle: square icon button beside the swatch, lit while armed. */
+  .icon-btn { flex: none; width: 44px; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .icon-btn svg { display: block; }
+  .icon-btn[aria-pressed="true"] { background: #5b8cff; border-color: #5b8cff; color: #fff; }
+  .icon-btn[aria-pressed="true"]:hover { background: #6d99ff; }
   .row { width: 100%; display: flex; flex-direction: column; gap: 6px; }
   .row label { color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
   input[type="range"] { width: 100%; accent-color: #5b8cff; }
@@ -171,6 +194,8 @@
     .legend-touch { display: flex; }
     .hint-touch { display: block; }
     button { min-height: 44px; }
+    .swatch-bar .swatch { width: 44px; }
+    .recents, .swatch-bar { gap: 8px; }
     .zoom button { font-size: 18px; }
     input[type="range"] { height: 28px; }
     #userList li { font-size: 14px; }
@@ -236,7 +261,10 @@
     body.fs #wheel { width: 80px; height: 80px; flex: none; }
     body.fs #picker .row { flex: 1; min-width: 0; }
     body.fs #picker .row label { display: none; }
+    body.fs #picker .swatch-group { display: none; }
+    body.fs #picker .preview-row { flex: none; width: auto; gap: 8px; }
     body.fs #picker .preview { width: 40px; height: 40px; flex: none; }
+    body.fs #picker .icon-btn { width: 40px; height: 40px; }
     body.fs .fs-controls .full { width: auto; flex: none; }
     body.fs #fsExit { min-width: 44px; justify-content: center; }
     body.fs #fsExit span { display: none; }
@@ -265,12 +293,32 @@
 
   <div class="panel main-controls">
     <div id="picker">
+      <div class="swatch-group">
+        <div class="swatch-bar">
+          <button class="swatch" type="button" data-color="#000000" style="background: #000000"
+                  aria-label="Use black" title="Use black (#000000)"></button>
+          <button class="swatch" type="button" data-color="#ffffff" style="background: #ffffff"
+                  aria-label="Use white" title="Use white (#ffffff)"></button>
+        </div>
+        <div class="swatch-label">Recent</div>
+        <div class="recents" id="recents" role="group" aria-label="Recently used colors"></div>
+      </div>
       <canvas id="wheel" width="200" height="200"></canvas>
       <div class="row">
         <label>Brightness <span id="valLabel">100%</span></label>
         <input id="value" type="range" min="0" max="100" value="100" />
       </div>
-      <div class="preview" id="preview"></div>
+      <div class="preview-row">
+        <div class="preview" id="preview"></div>
+        <button class="icon-btn" id="eyedrop" type="button" aria-pressed="false"
+                aria-label="Copy a color from the canvas" title="Copy a color from the canvas (I)">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 20l.7-3.2L15 6.5l3 3L7.2 19.3 4 20z" />
+            <path d="M16 5.5l3 3 1.9-1.9a2.1 2.1 0 0 0-3-3L16 5.5z" />
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="zoom">
       <button id="zoomOut" title="Zoom out">−</button>
@@ -474,6 +522,107 @@
   });
   updateColor();
 
+  // ---- Eyedropper: arm it, and the next click on the board copies that cell ----
+  const eyedropBtn = document.getElementById("eyedrop");
+  let eyedropping = false;
+
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    let h = 0;
+    if (d) {
+      if (max === r) h = 60 * (((g - b) / d) % 6);
+      else if (max === g) h = 60 * ((b - r) / d + 2);
+      else h = 60 * ((r - g) / d + 4);
+      if (h < 0) h += 360;
+    }
+    return { h, s: max ? d / max : 0, v: max };
+  }
+
+  function setEyedrop(on) {
+    eyedropping = on;
+    eyedropBtn.setAttribute("aria-pressed", String(on));
+    document.body.classList.toggle("eyedrop", on);
+  }
+  eyedropBtn.addEventListener("click", () => setEyedrop(!eyedropping));
+
+  // Read whatever is already on a cell. Untouched cells are transparent over
+  // the canvas's white backdrop, so they sample as white.
+  function sampleCell(x, y) {
+    const d = ctx.getImageData(x * CELL + CELL / 2, y * CELL + CELL / 2, 1, 1).data;
+    return d[3] === 0 ? [255, 255, 255] : [d[0], d[1], d[2]];
+  }
+
+  // Adopt a sampled color as the current one. Keeping full-precision value
+  // (the slider only shows it rounded) makes the copy exact.
+  function adoptColor([r, g, b]) {
+    const hsv = rgbToHsv(r, g, b);
+    hue = hsv.h; sat = hsv.s; val = hsv.v;
+    const pct = Math.round(val * 100);
+    document.getElementById("value").value = pct;
+    document.getElementById("valLabel").textContent = pct + "%";
+    updateColor();
+  }
+
+  // ---- Swatches: fixed black/white, plus the last colors you painted with ----
+  const RECENTS_KEY = "rslashplace.recents";
+  const RECENTS_MAX = 10;
+  const recentsEl = document.getElementById("recents");
+
+  function isHex(c) { return typeof c === "string" && /^#[0-9a-f]{6}$/.test(c); }
+
+  // Anything could be sitting in storage from an older build or another tab, so
+  // keep only well-formed entries rather than trusting what we read.
+  let recents = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem(RECENTS_KEY) || "[]");
+    if (Array.isArray(saved)) recents = saved.filter(isHex).slice(0, RECENTS_MAX);
+  } catch {}
+
+  function adoptHex(hex) {
+    adoptColor([
+      parseInt(hex.slice(1, 3), 16),
+      parseInt(hex.slice(3, 5), 16),
+      parseInt(hex.slice(5, 7), 16),
+    ]);
+  }
+
+  // Always lay out all ten cells; empty ones are placeholders so the panel does
+  // not resize as the list fills up.
+  function renderRecents() {
+    recentsEl.innerHTML = "";
+    for (let i = 0; i < RECENTS_MAX; i++) {
+      const hex = recents[i];
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = hex ? "swatch" : "swatch empty";
+      if (hex) {
+        b.style.background = hex;
+        b.title = `Use ${hex}`;
+        b.setAttribute("aria-label", `Use ${hex}`);
+        b.addEventListener("click", () => adoptHex(hex));
+      } else {
+        b.disabled = true;
+        b.setAttribute("aria-hidden", "true");
+      }
+      recentsEl.appendChild(b);
+    }
+  }
+
+  // Recorded when a color is actually painted, not merely selected -- otherwise
+  // every intermediate shade of a wheel drag would flood the list.
+  function rememberColor(hex) {
+    if (!isHex(hex)) return;
+    recents = [hex, ...recents.filter((c) => c !== hex)].slice(0, RECENTS_MAX);
+    try { localStorage.setItem(RECENTS_KEY, JSON.stringify(recents)); } catch {}
+    renderRecents();
+  }
+
+  for (const b of document.querySelectorAll(".swatch-bar .swatch")) {
+    b.addEventListener("click", () => adoptHex(b.dataset.color));
+  }
+  renderRecents();
+
   // ---- Grid overlay ----
   function drawGridLines() {
     octx.clearRect(0, 0, SIZE, SIZE);
@@ -505,6 +654,7 @@
     if (e.metaKey || e.ctrlKey || e.target.tagName === "INPUT") return;
     if (e.key === "g" || e.key === "G") setGrid(!showGrid);
     if (e.key === "n" || e.key === "N") setNames(document.body.classList.contains("hide-names"));
+    if (e.key === "i" || e.key === "I") setEyedrop(!eyedropping);
   });
   drawGridLines();
 
@@ -642,7 +792,13 @@
     if (spaceDown || gestureMoved) return;
     const cell = cellAt(e);
     if (!cell) return;
+    if (eyedropping) {
+      adoptColor(sampleCell(cell.x, cell.y));
+      setEyedrop(false);
+      return;
+    }
     paintCell(cell.x, cell.y, color);
+    rememberColor(color);
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "pixel", x: cell.x, y: cell.y, color }));
     }
@@ -870,6 +1026,9 @@
   window.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.target.tagName === "INPUT") return;
     if (e.key === "f" || e.key === "F") toggleFs();
-    if (e.key === "Escape" && isFs()) exitFs();
+    if (e.key === "Escape") {
+      if (eyedropping) setEyedrop(false);
+      else if (isFs()) exitFs();
+    }
   });
 </script>
