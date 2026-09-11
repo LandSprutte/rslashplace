@@ -10,11 +10,16 @@ Group=rslashplace
 WorkingDirectory=/opt/rslashplace
 ExecStart=/usr/local/bin/bun /opt/rslashplace/server.ts
 
-# Bound to loopback: only Caddy can reach the app, never the public internet.
-Environment=HOST=127.0.0.1
-Environment=PORT=3000
 Environment=DATA_FILE=/var/lib/rslashplace/canvas.json
 Environment=NODE_ENV=production
+# Defaults suit proxied mode (loopback only). /etc/default/rslashplace is read
+# last, so it overrides these -- that file is what selects direct vs proxied.
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+EnvironmentFile=-/etc/default/rslashplace
+
+# Needed only if you set PORT below 1024 in direct mode; harmless otherwise.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 
 Restart=always
 RestartSec=2

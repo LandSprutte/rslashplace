@@ -18,19 +18,32 @@ rsync -avz --chown=rslashplace:rslashplace \
 	"$REPO_ROOT/server.ts" "$REPO_ROOT/index.html" \
 	"$TARGET:$APP_DIR/"
 
-echo "==> Installing systemd unit and Caddy config"
+echo "==> Installing systemd unit"
 rsync -avz "$REPO_ROOT/deploy/rslashplace.service" "$TARGET:/etc/systemd/system/rslashplace.service"
-rsync -avz "$REPO_ROOT/deploy/Caddyfile" "$TARGET:/etc/caddy/Caddyfile"
+
+# Only push the proxy config if setup.sh actually installed Caddy. In direct
+# mode there is no Caddy and nothing to configure. /etc/default/rslashplace is
+# written by setup.sh and left alone here, so redeploys never change the mode.
+if ssh "$TARGET" 'command -v caddy >/dev/null 2>&1'; then
+	echo "==> Caddy present -- updating proxy config"
+	rsync -avz "$REPO_ROOT/deploy/Caddyfile" "$TARGET:/etc/caddy/Caddyfile"
+else
+	echo "==> No Caddy on host (direct mode) -- skipping proxy config"
+fi
 
 echo "==> Restarting services"
 ssh "$TARGET" bash -euo pipefail <<'REMOTE'
 systemctl daemon-reload
 systemctl enable --now rslashplace
 systemctl restart rslashplace
-caddy validate --config /etc/caddy/Caddyfile
-systemctl reload caddy || systemctl restart caddy
+if command -v caddy >/dev/null 2>&1; then
+	caddy validate --config /etc/caddy/Caddyfile
+	systemctl reload caddy || systemctl restart caddy
+fi
 sleep 1
 systemctl --no-pager --lines=15 status rslashplace
+echo
+echo "Listening on: $(grep -h . /etc/default/rslashplace | tr '\n' ' ')"
 REMOTE
 
 echo

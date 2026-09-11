@@ -1,4 +1,5 @@
 import type { ServerWebSocket } from "bun";
+import { dirname, join, resolve } from "node:path";
 
 // The canvas is a GRID x GRID array of cells. Each pixel is addressed by
 // index = y * GRID + x. Keep this in sync with the client.
@@ -13,6 +14,24 @@ const HOST = process.env.HOST ?? "0.0.0.0";
 // Canvas is kept in memory and mirrored to disk so a restart/redeploy does not
 // wipe everyone's pixels.
 const DATA_FILE = process.env.DATA_FILE ?? "./canvas.json";
+
+// index.html lives next to server.ts when running from source, but a compiled
+// binary resolves import.meta.url inside its virtual bundle filesystem, where
+// the file does not exist. Try each location and keep the one that works.
+async function resolveIndex(): Promise<string> {
+  const candidates = [
+    new URL("./index.html", import.meta.url).pathname,
+    join(dirname(process.execPath), "index.html"),
+    resolve("index.html"),
+  ];
+  for (const path of candidates) {
+    if (await Bun.file(path).exists()) return path;
+  }
+  throw new Error(
+    `index.html not found. Looked in:\n  ${candidates.join("\n  ")}`,
+  );
+}
+const INDEX_PATH = await resolveIndex();
 
 type Client = { id: string; name: string; x: number | null; y: number | null };
 
@@ -108,7 +127,7 @@ const server = Bun.serve<Client, {}>({
     }
 
     if (url.pathname === "/" || url.pathname === "/index.html") {
-      return new Response(Bun.file(new URL("./index.html", import.meta.url)), {
+      return new Response(Bun.file(INDEX_PATH), {
         headers: { "Content-Type": "text/html; charset=utf-8" },
       });
     }

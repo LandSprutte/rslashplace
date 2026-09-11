@@ -157,6 +157,14 @@
     #userList .nm { max-width: 150px; }
   }
 
+  /* ---- Phones: tighten the control panel ---- */
+  @media (max-width: 480px) {
+    .panel { padding: 14px; gap: 13px; }
+    #wheel { width: 168px; height: 168px; }
+    .preview { height: 38px; }
+    .ill svg { height: 62px; width: auto; }
+  }
+
   /* ---- Coarse pointers: bigger targets, touch-accurate help text ---- */
   @media (hover: none) and (pointer: coarse) {
     .legend-mouse, .hint-mouse { display: none; }
@@ -227,8 +235,10 @@
     body.fs #picker { flex-direction: row; align-items: center; gap: 12px; flex: 1; min-width: 0; }
     body.fs #wheel { width: 80px; height: 80px; flex: none; }
     body.fs #picker .row { flex: 1; min-width: 0; }
+    body.fs #picker .row label { display: none; }
     body.fs #picker .preview { width: 40px; height: 40px; flex: none; }
     body.fs .fs-controls .full { width: auto; flex: none; }
+    body.fs #fsExit { min-width: 44px; justify-content: center; }
     body.fs #fsExit span { display: none; }
   }
 </style>
@@ -354,7 +364,7 @@
 <!-- Floating controls shown only in fullscreen: color picker + exit button -->
 <div class="fs-controls" id="fsControls">
   <div id="fsPickerSlot"></div>
-  <button class="full" id="fsExit">⛶ Exit fullscreen <span style="color: var(--muted)">(F / Esc)</span></button>
+  <button class="full" id="fsExit" aria-label="Exit fullscreen" title="Exit fullscreen">⛶ <span>Exit fullscreen</span> <span style="color: var(--muted)">(F / Esc)</span></button>
 </div>
 
 <script>
@@ -430,19 +440,30 @@
   }
   drawWheel();
 
+  // The wheel is drawn at 200x200 but rendered at whatever CSS size fits, so
+  // hit-test against the on-screen radius rather than the backing-store one.
   function pickFromWheel(e) {
     const rect = wheel.getBoundingClientRect();
-    const x = e.clientX - rect.left - R;
-    const y = e.clientY - rect.top - R;
-    const dist = Math.min(Math.sqrt(x * x + y * y), R);
+    const r = rect.width / 2;
+    if (!r) return;
+    const x = e.clientX - rect.left - r;
+    const y = e.clientY - rect.top - r;
+    const dist = Math.min(Math.hypot(x, y), r);
     let h = (Math.atan2(y, x) * 180) / Math.PI;
     if (h < 0) h += 360;
     hue = h;
-    sat = dist / R;
+    sat = dist / r;
     updateColor();
   }
   let pickingWheel = false;
-  wheel.addEventListener("pointerdown", (e) => { pickingWheel = true; pickFromWheel(e); });
+  wheel.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    pickingWheel = true;
+    // Capture keeps a drag alive if the finger slides off the wheel; touch gets
+    // it implicitly anyway, so never let a failure here block the pick.
+    try { wheel.setPointerCapture(e.pointerId); } catch {}
+    pickFromWheel(e);
+  });
   window.addEventListener("pointermove", (e) => { if (pickingWheel) pickFromWheel(e); });
   window.addEventListener("pointerup", () => { pickingWheel = false; });
 
@@ -556,19 +577,54 @@
   window.addEventListener("resize", applyTransform);
   applyTransform();
 
-  // Pan: right/middle mouse drag, or hold Space + left drag.
+  // Pan: right/middle mouse drag, hold Space + left drag, or a one-finger touch
+  // drag. Two fingers pinch to zoom.
   let spaceDown = false;
   window.addEventListener("keydown", (e) => { if (e.code === "Space") spaceDown = true; });
   window.addEventListener("keyup", (e) => { if (e.code === "Space") spaceDown = false; });
 
+  const TAP_SLOP = 8;          // movement (px) still counted as a tap, not a drag
+  const pointers = new Map();  // pointerId -> { x, y } for every pointer currently down
   let panning = false, panStart = null;
+  let pinch = null;            // last two-finger sample: { dist, cx, cy }
+  let gestureStart = null, gestureMoved = false;
+
+  function beginPan(x, y) {
+    panning = true;
+    panStart = { x, y, px: panX, py: panY };
+  }
+  function pinchSample() {
+    const [a, b] = [...pointers.values()];
+    return {
+      dist: Math.hypot(b.x - a.x, b.y - a.y),
+      cx: (a.x + b.x) / 2,
+      cy: (a.y + b.y) / 2,
+    };
+  }
+
   overlay.addEventListener("contextmenu", (e) => e.preventDefault());
   overlay.addEventListener("pointerdown", (e) => {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      gestureStart = { x: e.clientX, y: e.clientY };
+      gestureMoved = false;
+    }
+
+    if (e.pointerType === "touch") {
+      overlay.setPointerCapture(e.pointerId);
+      if (pointers.size === 1) beginPan(e.clientX, e.clientY);
+      else if (pointers.size === 2) {
+        gestureMoved = true;  // a pinch never places a pixel
+        panning = false;
+        pinch = pinchSample();
+      }
+      return;
+    }
+
     const usePan = e.button === 1 || e.button === 2 || (e.button === 0 && spaceDown);
     if (!usePan) return;
     e.preventDefault();
-    panning = true;
-    panStart = { x: e.clientX, y: e.clientY, px: panX, py: panY };
+    beginPan(e.clientX, e.clientY);
     overlay.setPointerCapture(e.pointerId);
     overlay.style.cursor = "grabbing";
   });
@@ -583,7 +639,7 @@
   }
 
   overlay.addEventListener("click", (e) => {
-    if (spaceDown) return;
+    if (spaceDown || gestureMoved) return;
     const cell = cellAt(e);
     if (!cell) return;
     paintCell(cell.x, cell.y, color);
@@ -606,15 +662,7 @@
     }
   }
 
-  overlay.addEventListener("pointermove", (e) => {
-    if (panning) {
-      panX = panStart.px + (e.clientX - panStart.x);
-      panY = panStart.py + (e.clientY - panStart.y);
-      applyTransform();
-      sendCursor(e);
-      return;
-    }
-    sendCursor(e);
+  function hover(e) {
     drawGridLines();
     const cell = cellAt(e);
     const coordEl = document.getElementById("coord");
@@ -623,17 +671,78 @@
     octx.strokeStyle = "rgba(0,0,0,0.9)";
     octx.lineWidth = 2;
     octx.strokeRect(cell.x * CELL + 1, cell.y * CELL + 1, CELL - 2, CELL - 2);
+  }
+  function clearHover() {
+    drawGridLines();
+    document.getElementById("coord").textContent = "—";
+  }
+  function hideMyCursor() {
+    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "cursor", x: null, y: null }));
+  }
+
+  overlay.addEventListener("pointermove", (e) => {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (gestureStart && pointers.size &&
+        Math.hypot(e.clientX - gestureStart.x, e.clientY - gestureStart.y) > TAP_SLOP) {
+      gestureMoved = true;
+    }
+
+    if (pinch && pointers.size >= 2) {
+      const now = pinchSample();
+      if (pinch.dist > 0) {
+        zoomAt(now.cx, now.cy, now.dist / pinch.dist);
+        // Two-finger drag: follow the midpoint as well as the spread.
+        panX += now.cx - pinch.cx;
+        panY += now.cy - pinch.cy;
+        applyTransform();
+      }
+      pinch = now;
+      return;
+    }
+
+    // A touch drag only pans once it clears the tap threshold, so a tap that
+    // wobbles a pixel or two still lands on the cell it started on.
+    if (panning && (e.pointerType !== "touch" || gestureMoved)) {
+      panX = panStart.px + (e.clientX - panStart.x);
+      panY = panStart.py + (e.clientY - panStart.y);
+      applyTransform();
+      sendCursor(e);
+      return;
+    }
+
+    sendCursor(e);
+    hover(e);
   });
+
   function endPan() {
     panning = false;
     overlay.style.cursor = "crosshair";
   }
-  overlay.addEventListener("pointerup", endPan);
-  overlay.addEventListener("pointerleave", () => {
+  function releasePointer(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    // A finger lifted out of a pinch: re-anchor so the survivor keeps panning
+    // from where it is instead of jumping.
+    if (e.pointerType === "touch" && pointers.size === 1) {
+      const [p] = [...pointers.values()];
+      beginPan(p.x, p.y);
+      return;
+    }
+    if (pointers.size) return;
     endPan();
-    drawGridLines();
-    document.getElementById("coord").textContent = "—";
-    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "cursor", x: null, y: null }));
+    if (e.pointerType === "touch") {
+      // There is no hover on touch, so drop the highlight when the finger goes.
+      clearHover();
+      hideMyCursor();
+    }
+  }
+  overlay.addEventListener("pointerup", releasePointer);
+  overlay.addEventListener("pointercancel", releasePointer);
+  overlay.addEventListener("pointerleave", () => {
+    if (pointers.size) return;
+    endPan();
+    clearHover();
+    hideMyCursor();
   });
 
   // ---- WebSocket ----
