@@ -1,0 +1,12 @@
+{
+  "name": "rslashplace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun server.ts",
+    "dev": "bun --watch server.ts",
+    "build:linux-x64": "bun build --compile --target=bun-linux-x64 server.ts --outfile dist/rslashplace-linux-x64",
+    "build:linux-arm64": "bun build --compile --target=bun-linux-arm64 server.ts --outfile dist/rslashplace-linux-arm64"
+  }
+}

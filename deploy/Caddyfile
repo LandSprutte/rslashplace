@@ -1,0 +1,28 @@
+# Replace place.example.com with your domain (A/AAAA record -> your Scaleway
+# instance's public IP). Caddy provisions and renews the TLS cert on its own.
+#
+# Caddy v2 proxies WebSocket upgrades transparently -- no special config needed
+# for the /ws endpoint.
+place.example.com {
+	encode gzip
+
+	reverse_proxy 127.0.0.1:3000 {
+		# Pixel/cursor connections are long-lived and can be idle between
+		# strokes; don't let the proxy cut them.
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+
+	log {
+		output file /var/log/caddy/rslashplace.log
+	}
+}
+
+# No domain yet? Comment out the block above and uncomment this one to serve
+# over plain HTTP on the instance's IP (the client falls back to ws:// on its
+# own). Fine for testing, not for anything public.
+# :80 {
+# 	reverse_proxy 127.0.0.1:3000
+# }

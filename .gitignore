@@ -1,0 +1,7 @@
+node_modules/
+# Compiled Bun binaries (platform-specific, 60MB+ — build them, don't commit them)
+rslashplace
+dist/
+# Runtime canvas state
+canvas.json
+*.log

@@ -1,0 +1,43 @@
+[Unit]
+Description=r/place clone (Bun WebSocket server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rslashplace
+Group=rslashplace
+WorkingDirectory=/opt/rslashplace
+ExecStart=/usr/local/bin/bun /opt/rslashplace/server.ts
+
+# Bound to loopback: only Caddy can reach the app, never the public internet.
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=DATA_FILE=/var/lib/rslashplace/canvas.json
+Environment=NODE_ENV=production
+
+Restart=always
+RestartSec=2
+# Give the shutdown handler time to flush the canvas to disk.
+KillSignal=SIGTERM
+TimeoutStopSec=10
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/rslashplace
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rslashplace
+
+[Install]
+WantedBy=multi-user.target
