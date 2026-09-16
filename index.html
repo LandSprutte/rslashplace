@@ -332,7 +332,6 @@
       <span>Show names <span style="color: var(--muted)">(N)</span></span>
     </label>
     <button class="full" id="fsEnter">⛶ Fullscreen <span style="color: var(--muted)">(F)</span></button>
-    <button class="full" id="clear">Clear canvas</button>
 
     <div class="legend legend-mouse">
       <figure class="ill">
@@ -979,10 +978,6 @@
       positionCursor(c);
     }
   };
-
-  document.getElementById("clear").addEventListener("click", () => {
-    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "clear" }));
-  });
 
   // ---- Fullscreen mode ----
   // The color picker DOM is physically relocated into the floating panel so all
