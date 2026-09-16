@@ -14,9 +14,12 @@ APP_DIR=/opt/rslashplace
 
 echo "==> Syncing app files to $TARGET:$APP_DIR"
 # Only the two files the server actually needs at runtime.
-rsync -avz --chown=rslashplace:rslashplace \
-	"$REPO_ROOT/server.ts" "$REPO_ROOT/index.html" \
-	"$TARGET:$APP_DIR/"
+# No --chown: macOS ships openrsync, which does not support that flag and fails
+# the whole transfer. Set ownership over ssh after the copy instead, which works
+# with both openrsync and GNU rsync.
+rsync -avz "$REPO_ROOT/server.ts" "$REPO_ROOT/index.html" "$TARGET:$APP_DIR/"
+ssh "$TARGET" "chown rslashplace:rslashplace '$APP_DIR/server.ts' '$APP_DIR/index.html' \
+	&& chmod 644 '$APP_DIR/server.ts' '$APP_DIR/index.html'"
 
 echo "==> Installing systemd unit"
 rsync -avz "$REPO_ROOT/deploy/rslashplace.service" "$TARGET:/etc/systemd/system/rslashplace.service"
