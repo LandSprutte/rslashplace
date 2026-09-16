@@ -7,6 +7,7 @@
     "start": "bun server.ts",
     "dev": "bun --watch server.ts",
     "build:linux-x64": "bun build --compile --target=bun-linux-x64 server.ts --outfile dist/rslashplace-linux-x64",
-    "build:linux-arm64": "bun build --compile --target=bun-linux-arm64 server.ts --outfile dist/rslashplace-linux-arm64"
+    "build:linux-arm64": "bun build --compile --target=bun-linux-arm64 server.ts --outfile dist/rslashplace-linux-arm64",
+    "loadtest": "bun scripts/loadtest.ts"
   }
 }

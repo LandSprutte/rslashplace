@@ -9,13 +9,18 @@
     --text: #e6e8ef;
     --muted: #8b90a3;
   }
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
   body {
     margin: 0;
     min-height: 100vh;
     background: var(--bg);
     color: var(--text);
-    font: 14px/1.4 system-ui, -apple-system, sans-serif;
+    font:
+      14px/1.4 system-ui,
+      -apple-system,
+      sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -24,9 +29,18 @@
     overscroll-behavior-y: contain;
     -webkit-tap-highlight-color: transparent;
   }
-  h1 { margin: 0; font-size: 20px; font-weight: 600; }
-  .status { color: var(--muted); font-size: 13px; }
-  .status b { color: var(--text); }
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .status {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .status b {
+    color: var(--text);
+  }
   .stage {
     display: flex;
     gap: 20px;
@@ -37,10 +51,11 @@
   /* Fixed window that clips the (possibly zoomed) board. */
   .viewport {
     position: relative;
-    /* Fit the widest square that leaves room for both side panels and the header. */
-    width: min(800px, calc(100vw - 560px), calc(100vh - 150px));
-    width: min(800px, calc(100vw - 560px), calc(100dvh - 150px));
-    aspect-ratio: 1 / 1;
+    /* The board is taller than it is wide (1200x1440), so the height limit binds
+       first: cap the width at the height budget scaled by the 5:6 aspect. */
+    width: min(1200px, calc(100vw - 560px), calc((100vh - 150px) * 5 / 6));
+    width: min(1200px, calc(100vw - 560px), calc((100dvh - 150px) * 5 / 6));
+    aspect-ratio: 1200 / 1440;
     overflow: hidden;
     border-radius: 8px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
@@ -49,51 +64,113 @@
   }
   .canvas-wrap {
     position: absolute;
-    top: 0; left: 0;
-    width: 800px;
-    height: 800px;
+    top: 0;
+    left: 0;
+    width: 1200px;
+    height: 1440px;
     transform-origin: 0 0;
     line-height: 0;
   }
-  #canvas, #overlay {
+  #canvas,
+  #overlay {
     position: absolute;
     inset: 0;
-    width: 800px;
-    height: 800px;
+    width: 1200px;
+    height: 1440px;
     image-rendering: pixelated;
   }
-  #canvas { background: #fff; }
-  #overlay { cursor: crosshair; touch-action: none; }
+  #canvas {
+    background: #fff;
+  }
+  #overlay {
+    cursor: crosshair;
+    touch-action: none;
+  }
   body.eyedrop #overlay {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg stroke='%23000' stroke-width='4' stroke-linejoin='round' fill='none'%3E%3Cpath d='M4 22L5 18 16 7l3 3-11 11z'/%3E%3Cpath d='M17 6l3 3 2-2a2.1 2.1 0 0 0-3-3z'/%3E%3C/g%3E%3Cg fill='%23fff' stroke='%23000' stroke-width='1.4' stroke-linejoin='round'%3E%3Cpath d='M4 22L5 18 16 7l3 3-11 11z'/%3E%3Cpath d='M17 6l3 3 2-2a2.1 2.1 0 0 0-3-3z'/%3E%3C/g%3E%3C/svg%3E") 4 22, crosshair;
+    cursor:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg stroke='%23000' stroke-width='4' stroke-linejoin='round' fill='none'%3E%3Cpath d='M4 22L5 18 16 7l3 3-11 11z'/%3E%3Cpath d='M17 6l3 3 2-2a2.1 2.1 0 0 0-3-3z'/%3E%3C/g%3E%3Cg fill='%23fff' stroke='%23000' stroke-width='1.4' stroke-linejoin='round'%3E%3Cpath d='M4 22L5 18 16 7l3 3-11 11z'/%3E%3Cpath d='M17 6l3 3 2-2a2.1 2.1 0 0 0-3-3z'/%3E%3C/g%3E%3C/svg%3E")
+        4 22,
+      crosshair;
   }
   /* Remote cursor layer (in viewport space, so labels stay a constant size) */
-  #cursors { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-  .cursor { position: absolute; top: 0; left: 0; will-change: transform; }
+  #cursors {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .cursor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform;
+  }
   .cursor .dot {
-    width: 12px; height: 12px; border-radius: 50%;
-    border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
     transform: translate(-50%, -50%);
   }
   .cursor .cursor-label {
-    position: absolute; left: 8px; top: 4px;
-    white-space: nowrap; font-size: 11px; font-weight: 600; color: #fff;
-    padding: 2px 7px; border-radius: 6px;
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
   }
-  body.hide-names .cursor-label { display: none; }
+  body.hide-names .cursor-label {
+    display: none;
+  }
 
   /* Roster / online list */
-  .roster { width: 180px; align-items: stretch !important; }
-  .roster-title {
-    font-size: 12px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: 0.05em;
+  .roster {
+    width: 180px;
+    align-items: stretch !important;
   }
-  #userList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-  #userList li { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-  #userList .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; border: 1px solid rgba(255, 255, 255, 0.3); }
-  #userList .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #userList .you { color: var(--muted); font-size: 11px; flex: none; }
+  .roster-title {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  #userList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  #userList li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  #userList .dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  #userList .nm {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #userList .you {
+    color: var(--muted);
+    font-size: 11px;
+    flex: none;
+  }
 
   .panel {
     background: var(--panel);
@@ -106,106 +183,346 @@
     gap: 16px;
     align-items: center;
   }
-  #wheel { cursor: crosshair; border-radius: 50%; touch-action: none; max-width: 100%; }
+  #wheel {
+    cursor: crosshair;
+    border-radius: 50%;
+    touch-action: none;
+    max-width: 100%;
+  }
   /* Swatches: the two fixed extremes, then the colors you last painted with. */
-  .swatch-group { width: 100%; display: flex; flex-direction: column; gap: 6px; }
-  .swatch-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .swatch-bar, .recents { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .swatch-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .swatch-label {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .swatch-bar,
+  .recents {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
   .swatch {
-    padding: 0; min-height: 0; aspect-ratio: 1 / 1;
-    border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+    padding: 0;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
   }
   /* Inline background beats button:hover, so the hover cue has to be an outline. */
-  .swatch:hover { outline: 2px solid #5b8cff; outline-offset: 1px; }
-  .swatch.empty { background: transparent; border-style: dashed; cursor: default; }
-  .swatch.empty:hover { outline: none; }
-  .preview-row { width: 100%; display: flex; gap: 8px; align-items: stretch; }
-  .preview { flex: 1; min-width: 0; height: 44px; border-radius: 8px; border: 1px solid var(--border); }
-  /* Eyedropper toggle: square icon button beside the swatch, lit while armed. */
-  .icon-btn { flex: none; width: 44px; padding: 0; display: flex; align-items: center; justify-content: center; }
-  .icon-btn svg { display: block; }
-  .icon-btn[aria-pressed="true"] { background: #5b8cff; border-color: #5b8cff; color: #fff; }
-  .icon-btn[aria-pressed="true"]:hover { background: #6d99ff; }
-  .row { width: 100%; display: flex; flex-direction: column; gap: 6px; }
-  .row label { color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
-  input[type="range"] { width: 100%; accent-color: #5b8cff; }
-  .toggle { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
-  .zoom { width: 100%; display: flex; gap: 8px; align-items: center; }
-  .zoom button { flex: 1; }
-  .zoom .level { flex: 1.4; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
-  button {
-    padding: 10px; border: 1px solid var(--border); background: #262a38;
-    color: var(--text); border-radius: 8px; cursor: pointer; font-size: 13px;
+  .swatch:hover {
+    outline: 2px solid #5b8cff;
+    outline-offset: 1px;
   }
-  button:hover { background: #303546; }
-  .full { width: 100%; }
-  .hint { color: var(--muted); font-size: 11px; text-align: center; line-height: 1.5; }
+  .swatch.empty {
+    background: transparent;
+    border-style: dashed;
+    cursor: default;
+  }
+  .swatch.empty:hover {
+    outline: none;
+  }
+  .preview-row {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .preview {
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  /* Eyedropper toggle: square icon button beside the swatch, lit while armed. */
+  .icon-btn {
+    flex: none;
+    width: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-btn svg {
+    display: block;
+  }
+  .icon-btn[aria-pressed="true"] {
+    background: #5b8cff;
+    border-color: #5b8cff;
+    color: #fff;
+  }
+  .icon-btn[aria-pressed="true"]:hover {
+    background: #6d99ff;
+  }
+  .row {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .row label {
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: #5b8cff;
+  }
+  .toggle {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .zoom {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .zoom button {
+    flex: 1;
+  }
+  .zoom .level {
+    flex: 1.4;
+    text-align: center;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  button {
+    padding: 10px;
+    border: 1px solid var(--border);
+    background: #262a38;
+    color: var(--text);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover {
+    background: #303546;
+  }
+  .full {
+    width: 100%;
+  }
+  .hint {
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.5;
+  }
   /* Mouse control legend */
-  .legend { display: flex; gap: 12px; width: 100%; justify-content: center; }
-  .ill { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
-  .ill figcaption { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.3; }
-  .ill b { color: var(--text); font-weight: 600; }
-  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
-  @keyframes shove { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(2.5px, 0); } 75% { transform: translate(-2.5px, 0); } }
-  @keyframes pinchOut { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-3px, -3px); } }
-  @keyframes pinchIn { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(3px, 3px); } }
-  .scrollArrows { animation: bob 1.2s ease-in-out infinite; transform-origin: center; }
-  .panArrows { animation: shove 1.7s ease-in-out infinite; transform-origin: center; }
-  .pinchL { animation: pinchOut 1.6s ease-in-out infinite; transform-origin: center; }
-  .pinchR { animation: pinchIn 1.6s ease-in-out infinite; transform-origin: center; }
+  .legend {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+  .ill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .ill figcaption {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.3;
+  }
+  .ill b {
+    color: var(--text);
+    font-weight: 600;
+  }
+  @keyframes bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2.5px);
+    }
+  }
+  @keyframes shove {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    25% {
+      transform: translate(2.5px, 0);
+    }
+    75% {
+      transform: translate(-2.5px, 0);
+    }
+  }
+  @keyframes pinchOut {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(-3px, -3px);
+    }
+  }
+  @keyframes pinchIn {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(3px, 3px);
+    }
+  }
+  .scrollArrows {
+    animation: bob 1.2s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .panArrows {
+    animation: shove 1.7s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .pinchL {
+    animation: pinchOut 1.6s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .pinchR {
+    animation: pinchIn 1.6s ease-in-out infinite;
+    transform-origin: center;
+  }
   @media (prefers-reduced-motion: reduce) {
-    .scrollArrows, .panArrows, .pinchL, .pinchR { animation: none; }
+    .scrollArrows,
+    .panArrows,
+    .pinchL,
+    .pinchR {
+      animation: none;
+    }
   }
 
   /* Touch devices get their own legend/hint; pointer devices keep the mouse one. */
-  .legend-touch, .hint-touch { display: none; }
+  .legend-touch,
+  .hint-touch {
+    display: none;
+  }
 
   /* ---- Tablet & phone: stack the stage, board first ---- */
   @media (max-width: 900px) {
-    body { padding: 14px 10px 28px; gap: 12px; }
-    h1 { font-size: 18px; }
-    .status { text-align: center; padding: 0 6px; }
-    .stage { flex-direction: column; align-items: center; width: 100%; gap: 14px; }
+    body {
+      padding: 14px 10px 28px;
+      gap: 12px;
+    }
+    h1 {
+      font-size: 18px;
+    }
+    .status {
+      text-align: center;
+      padding: 0 6px;
+    }
+    .stage {
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      gap: 14px;
+    }
     .viewport {
       order: 1;
-      width: min(800px, 100%, 72vh);
-      width: min(800px, 100%, 72dvh);
+      width: min(1200px, 100%, 60vh);
+      width: min(1200px, 100%, 60dvh);
     }
-    .panel.main-controls { order: 2; }
-    .panel.roster { order: 3; }
-    .panel { width: 100%; max-width: 480px; }
-    #userList { flex-direction: row; flex-wrap: wrap; gap: 8px 16px; }
-    #userList .nm { max-width: 150px; }
+    .panel.main-controls {
+      order: 2;
+    }
+    .panel.roster {
+      order: 3;
+    }
+    .panel {
+      width: 100%;
+      max-width: 480px;
+    }
+    #userList {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+    }
+    #userList .nm {
+      max-width: 150px;
+    }
   }
 
   /* ---- Phones: tighten the control panel ---- */
   @media (max-width: 480px) {
-    .panel { padding: 14px; gap: 13px; }
-    #wheel { width: 168px; height: 168px; }
-    .preview { height: 38px; }
-    .ill svg { height: 62px; width: auto; }
+    .panel {
+      padding: 14px;
+      gap: 13px;
+    }
+    #wheel {
+      width: 168px;
+      height: 168px;
+    }
+    .preview {
+      height: 38px;
+    }
+    .ill svg {
+      height: 62px;
+      width: auto;
+    }
   }
 
   /* ---- Coarse pointers: bigger targets, touch-accurate help text ---- */
   @media (hover: none) and (pointer: coarse) {
-    .legend-mouse, .hint-mouse { display: none; }
-    .legend-touch { display: flex; }
-    .hint-touch { display: block; }
-    button { min-height: 44px; }
-    .recents, .swatch-bar { gap: 8px; }
-    .zoom button { font-size: 18px; }
-    input[type="range"] { height: 28px; }
-    #userList li { font-size: 14px; }
+    .legend-mouse,
+    .hint-mouse {
+      display: none;
+    }
+    .legend-touch {
+      display: flex;
+    }
+    .hint-touch {
+      display: block;
+    }
+    button {
+      min-height: 44px;
+    }
+    .recents,
+    .swatch-bar {
+      gap: 8px;
+    }
+    .zoom button {
+      font-size: 18px;
+    }
+    input[type="range"] {
+      height: 28px;
+    }
+    #userList li {
+      font-size: 14px;
+    }
   }
 
   /* ---- Fullscreen mode: canvas only + floating picker ---- */
-  .fs-controls { display: none; }
-  body.fs { overflow: hidden; }
+  .fs-controls {
+    display: none;
+  }
+  body.fs {
+    overflow: hidden;
+  }
   body.fs h1,
   body.fs .status,
   body.fs .panel.roster,
-  body.fs .panel.main-controls { display: none; }
-  body.fs .stage { gap: 0; }
+  body.fs .panel.main-controls {
+    display: none;
+  }
+  body.fs .stage {
+    gap: 0;
+  }
   body.fs .viewport {
     position: fixed;
     inset: 0;
@@ -238,8 +555,16 @@
     backdrop-filter: blur(8px);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
   }
-  #picker { display: flex; flex-direction: column; gap: 16px; align-items: center; width: 100%; }
-  .fs-controls .full { width: 100%; }
+  #picker {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+  }
+  .fs-controls .full {
+    width: 100%;
+  }
 
   /* On a phone the floating panel becomes a compact bar along the bottom edge. */
   @media (max-width: 700px) {
@@ -254,17 +579,53 @@
       gap: 12px;
       padding: 10px 12px;
     }
-    body.fs #picker { flex-direction: row; align-items: center; gap: 12px; flex: 1; min-width: 0; }
-    body.fs #wheel { width: 80px; height: 80px; flex: none; }
-    body.fs #picker .row { flex: 1; min-width: 0; }
-    body.fs #picker .row label { display: none; }
-    body.fs #picker .swatch-group { display: none; }
-    body.fs #picker .preview-row { flex: none; width: auto; gap: 8px; }
-    body.fs #picker .preview { width: 40px; height: 40px; flex: none; }
-    body.fs #picker .icon-btn { width: 40px; height: 40px; }
-    body.fs .fs-controls .full { width: auto; flex: none; }
-    body.fs #fsExit { min-width: 44px; justify-content: center; }
-    body.fs #fsExit span { display: none; }
+    body.fs #picker {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+    body.fs #wheel {
+      width: 80px;
+      height: 80px;
+      flex: none;
+    }
+    body.fs #picker .row {
+      flex: 1;
+      min-width: 0;
+    }
+    body.fs #picker .row label {
+      display: none;
+    }
+    body.fs #picker .swatch-group {
+      display: none;
+    }
+    body.fs #picker .preview-row {
+      flex: none;
+      width: auto;
+      gap: 8px;
+    }
+    body.fs #picker .preview {
+      width: 40px;
+      height: 40px;
+      flex: none;
+    }
+    body.fs #picker .icon-btn {
+      width: 40px;
+      height: 40px;
+    }
+    body.fs .fs-controls .full {
+      width: auto;
+      flex: none;
+    }
+    body.fs #fsExit {
+      min-width: 44px;
+      justify-content: center;
+    }
+    body.fs #fsExit span {
+      display: none;
+    }
   }
 </style>
 
@@ -282,8 +643,8 @@
 
   <div class="viewport" id="viewport">
     <div class="canvas-wrap" id="wrap">
-      <canvas id="canvas" width="800" height="800"></canvas>
-      <canvas id="overlay" width="800" height="800"></canvas>
+      <canvas id="canvas" width="1200" height="1440"></canvas>
+      <canvas id="overlay" width="1200" height="1440"></canvas>
     </div>
     <div id="cursors"></div>
   </div>
@@ -292,13 +653,30 @@
     <div id="picker">
       <div class="swatch-group">
         <div class="swatch-bar">
-          <button class="swatch" type="button" data-color="#000000" style="background: #000000"
-                  aria-label="Use black" title="Use black (#000000)"></button>
-          <button class="swatch" type="button" data-color="#ffffff" style="background: #ffffff"
-                  aria-label="Use white" title="Use white (#ffffff)"></button>
+          <button
+            class="swatch"
+            type="button"
+            data-color="#000000"
+            style="background: #000000"
+            aria-label="Use black"
+            title="Use black (#000000)"
+          ></button>
+          <button
+            class="swatch"
+            type="button"
+            data-color="#ffffff"
+            style="background: #ffffff"
+            aria-label="Use white"
+            title="Use white (#ffffff)"
+          ></button>
         </div>
         <div class="swatch-label">Recent</div>
-        <div class="recents" id="recents" role="group" aria-label="Recently used colors"></div>
+        <div
+          class="recents"
+          id="recents"
+          role="group"
+          aria-label="Recently used colors"
+        ></div>
       </div>
       <canvas id="wheel" width="200" height="200"></canvas>
       <div class="row">
@@ -307,10 +685,25 @@
       </div>
       <div class="preview-row">
         <div class="preview" id="preview"></div>
-        <button class="icon-btn" id="eyedrop" type="button" aria-pressed="false"
-                aria-label="Copy a color from the canvas" title="Copy a color from the canvas (I)">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button
+          class="icon-btn"
+          id="eyedrop"
+          type="button"
+          aria-pressed="false"
+          aria-label="Copy a color from the canvas"
+          title="Copy a color from the canvas (I)"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M4 20l.7-3.2L15 6.5l3 3L7.2 19.3 4 20z" />
             <path d="M16 5.5l3 3 1.9-1.9a2.1 2.1 0 0 0-3-3L16 5.5z" />
           </svg>
@@ -331,31 +724,99 @@
       <input id="nameToggle" type="checkbox" checked />
       <span>Show names <span style="color: var(--muted)">(N)</span></span>
     </label>
-    <button class="full" id="fsEnter">⛶ Fullscreen <span style="color: var(--muted)">(F)</span></button>
-
+    <button class="full" id="fsEnter">
+      ⛶ Fullscreen <span style="color: var(--muted)">(F)</span>
+    </button>
     <div class="legend legend-mouse">
       <figure class="ill">
-        <svg viewBox="0 0 60 96" width="56" height="90" role="img" aria-label="Scroll the mouse wheel to zoom">
-          <g class="scrollArrows" fill="none" stroke="#5b8cff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          viewBox="0 0 60 96"
+          width="56"
+          height="90"
+          role="img"
+          aria-label="Scroll the mouse wheel to zoom"
+        >
+          <g
+            class="scrollArrows"
+            fill="none"
+            stroke="#5b8cff"
+            stroke-width="2.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <polyline points="23,11 30,4 37,11" />
             <polyline points="23,85 30,92 37,85" />
           </g>
-          <rect x="8" y="16" width="44" height="64" rx="22" fill="#2a2f3d" stroke="#4a5066" stroke-width="2" />
-          <line x1="30" y1="18" x2="30" y2="46" stroke="#4a5066" stroke-width="2" />
+          <rect
+            x="8"
+            y="16"
+            width="44"
+            height="64"
+            rx="22"
+            fill="#2a2f3d"
+            stroke="#4a5066"
+            stroke-width="2"
+          />
+          <line
+            x1="30"
+            y1="18"
+            x2="30"
+            y2="46"
+            stroke="#4a5066"
+            stroke-width="2"
+          />
           <rect x="26" y="26" width="8" height="16" rx="4" fill="#5b8cff" />
         </svg>
         <figcaption><b>Scroll</b><br />to zoom</figcaption>
       </figure>
       <figure class="ill">
-        <svg viewBox="0 0 86 96" width="80" height="90" role="img" aria-label="Drag with the right mouse button to pan">
+        <svg
+          viewBox="0 0 86 96"
+          width="80"
+          height="90"
+          role="img"
+          aria-label="Drag with the right mouse button to pan"
+        >
           <defs>
-            <clipPath id="bodyClip"><rect x="8" y="16" width="44" height="64" rx="22" /></clipPath>
+            <clipPath id="bodyClip">
+              <rect x="8" y="16" width="44" height="64" rx="22" />
+            </clipPath>
           </defs>
-          <rect x="8" y="16" width="44" height="64" rx="22" fill="#2a2f3d" stroke="#4a5066" stroke-width="2" />
-          <rect x="30" y="16" width="22" height="30" fill="rgba(56,211,159,0.45)" clip-path="url(#bodyClip)" />
-          <line x1="30" y1="18" x2="30" y2="46" stroke="#4a5066" stroke-width="2" />
+          <rect
+            x="8"
+            y="16"
+            width="44"
+            height="64"
+            rx="22"
+            fill="#2a2f3d"
+            stroke="#4a5066"
+            stroke-width="2"
+          />
+          <rect
+            x="30"
+            y="16"
+            width="22"
+            height="30"
+            fill="rgba(56,211,159,0.45)"
+            clip-path="url(#bodyClip)"
+          />
+          <line
+            x1="30"
+            y1="18"
+            x2="30"
+            y2="46"
+            stroke="#4a5066"
+            stroke-width="2"
+          />
           <rect x="26" y="26" width="8" height="16" rx="4" fill="#3a4053" />
-          <g class="panArrows" fill="none" stroke="#38d39f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <g
+            class="panArrows"
+            fill="none"
+            stroke="#38d39f"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <line x1="70" y1="34" x2="70" y2="62" />
             <line x1="56" y1="48" x2="84" y2="48" />
             <polyline points="66,38 70,34 74,38" />
@@ -369,14 +830,43 @@
     </div>
     <div class="legend legend-touch">
       <figure class="ill">
-        <svg viewBox="0 0 86 96" width="80" height="90" role="img" aria-label="Pinch with two fingers to zoom">
-          <rect x="14" y="14" width="58" height="68" rx="12" fill="#2a2f3d" stroke="#4a5066" stroke-width="2" />
-          <g class="pinchL" fill="none" stroke="#5b8cff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          viewBox="0 0 86 96"
+          width="80"
+          height="90"
+          role="img"
+          aria-label="Pinch with two fingers to zoom"
+        >
+          <rect
+            x="14"
+            y="14"
+            width="58"
+            height="68"
+            rx="12"
+            fill="#2a2f3d"
+            stroke="#4a5066"
+            stroke-width="2"
+          />
+          <g
+            class="pinchL"
+            fill="none"
+            stroke="#5b8cff"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="32" cy="52" r="7" fill="#5b8cff" stroke="none" />
             <line x1="26" y1="46" x2="21" y2="41" />
             <polyline points="21,47 21,41 27,41" />
           </g>
-          <g class="pinchR" fill="none" stroke="#5b8cff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <g
+            class="pinchR"
+            fill="none"
+            stroke="#5b8cff"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="54" cy="44" r="7" fill="#5b8cff" stroke="none" />
             <line x1="60" y1="50" x2="65" y2="55" />
             <polyline points="65,49 65,55 59,55" />
@@ -385,9 +875,31 @@
         <figcaption><b>Pinch</b><br />to zoom</figcaption>
       </figure>
       <figure class="ill">
-        <svg viewBox="0 0 86 96" width="80" height="90" role="img" aria-label="Drag one finger to pan">
-          <rect x="14" y="14" width="58" height="68" rx="12" fill="#2a2f3d" stroke="#4a5066" stroke-width="2" />
-          <g class="panArrows" fill="none" stroke="#38d39f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          viewBox="0 0 86 96"
+          width="80"
+          height="90"
+          role="img"
+          aria-label="Drag one finger to pan"
+        >
+          <rect
+            x="14"
+            y="14"
+            width="58"
+            height="68"
+            rx="12"
+            fill="#2a2f3d"
+            stroke="#4a5066"
+            stroke-width="2"
+          />
+          <g
+            class="panArrows"
+            fill="none"
+            stroke="#38d39f"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <line x1="43" y1="30" x2="43" y2="66" />
             <line x1="25" y1="48" x2="61" y2="48" />
             <polyline points="39,34 43,30 47,34" />
@@ -400,21 +912,36 @@
         <figcaption><b>Drag</b><br />to pan</figcaption>
       </figure>
     </div>
-    <div class="hint hint-mouse">Click a cell to place one pixel.<br />Middle-drag or hold <b style="color: var(--text)">Space</b> also pans.</div>
-    <div class="hint hint-touch">Tap a cell to place one pixel.<br />Drag to pan, pinch to zoom.</div>
+    <div class="hint hint-mouse">
+      Click a cell to place one pixel.<br />Middle-drag or hold
+      <b style="color: var(--text)">Space</b> also pans.
+    </div>
+    <div class="hint hint-touch">
+      Tap a cell to place one pixel.<br />Drag to pan, pinch to zoom.
+    </div>
   </div>
 </div>
 
 <!-- Floating controls shown only in fullscreen: color picker + exit button -->
 <div class="fs-controls" id="fsControls">
   <div id="fsPickerSlot"></div>
-  <button class="full" id="fsExit" aria-label="Exit fullscreen" title="Exit fullscreen">⛶ <span>Exit fullscreen</span> <span style="color: var(--muted)">(F / Esc)</span></button>
+  <button
+    class="full"
+    id="fsExit"
+    aria-label="Exit fullscreen"
+    title="Exit fullscreen"
+  >
+    ⛶ <span>Exit fullscreen</span>
+    <span style="color: var(--muted)">(F / Esc)</span>
+  </button>
 </div>
 
 <script>
-  const GRID = 100;          // cells per side (kept in sync with the server)
-  const SIZE = 800;          // canvas pixel size
-  const CELL = SIZE / GRID;  // 8px per cell
+  const GRID_W = 150; // cells across (kept in sync with the server)
+  const GRID_H = 180; // cells down
+  const CELL = 8; // px per cell
+  const SIZE_W = GRID_W * CELL; // 1200
+  const SIZE_H = GRID_H * CELL; // 1440
 
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
@@ -435,7 +962,9 @@
   }
 
   // ---- Color state ----
-  let hue = 210, sat = 0.85, val = 1.0;
+  let hue = 210,
+    sat = 0.85,
+    val = 1.0;
   let color = "#000000";
   let showGrid = true;
 
@@ -443,14 +972,19 @@
     const c = v * s;
     const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = v - c;
-    let r = 0, g = 0, b = 0;
+    let r = 0,
+      g = 0,
+      b = 0;
     if (h < 60) [r, g, b] = [c, x, 0];
     else if (h < 120) [r, g, b] = [x, c, 0];
     else if (h < 180) [r, g, b] = [0, c, x];
     else if (h < 240) [r, g, b] = [0, x, c];
     else if (h < 300) [r, g, b] = [x, 0, c];
     else [r, g, b] = [c, 0, x];
-    const to = (n) => Math.round((n + m) * 255).toString(16).padStart(2, "0");
+    const to = (n) =>
+      Math.round((n + m) * 255)
+        .toString(16)
+        .padStart(2, "0");
     return "#" + to(r) + to(g) + to(b);
   }
 
@@ -467,10 +1001,14 @@
     const img = wctx.createImageData(wheel.width, wheel.height);
     for (let y = 0; y < wheel.height; y++) {
       for (let x = 0; x < wheel.width; x++) {
-        const dx = x - R, dy = y - R;
+        const dx = x - R,
+          dy = y - R;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const i = (y * wheel.width + x) * 4;
-        if (dist > R) { img.data[i + 3] = 0; continue; }
+        if (dist > R) {
+          img.data[i + 3] = 0;
+          continue;
+        }
         let h = (Math.atan2(dy, dx) * 180) / Math.PI;
         if (h < 0) h += 360;
         const hex = hsvToRgb(h, dist / R, 1);
@@ -505,11 +1043,17 @@
     pickingWheel = true;
     // Capture keeps a drag alive if the finger slides off the wheel; touch gets
     // it implicitly anyway, so never let a failure here block the pick.
-    try { wheel.setPointerCapture(e.pointerId); } catch {}
+    try {
+      wheel.setPointerCapture(e.pointerId);
+    } catch {}
     pickFromWheel(e);
   });
-  window.addEventListener("pointermove", (e) => { if (pickingWheel) pickFromWheel(e); });
-  window.addEventListener("pointerup", () => { pickingWheel = false; });
+  window.addEventListener("pointermove", (e) => {
+    if (pickingWheel) pickFromWheel(e);
+  });
+  window.addEventListener("pointerup", () => {
+    pickingWheel = false;
+  });
 
   document.getElementById("value").addEventListener("input", (e) => {
     val = e.target.value / 100;
@@ -523,8 +1067,12 @@
   let eyedropping = false;
 
   function rgbToHsv(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b),
+      min = Math.min(r, g, b),
+      d = max - min;
     let h = 0;
     if (d) {
       if (max === r) h = 60 * (((g - b) / d) % 6);
@@ -545,7 +1093,12 @@
   // Read whatever is already on a cell. Untouched cells are transparent over
   // the canvas's white backdrop, so they sample as white.
   function sampleCell(x, y) {
-    const d = ctx.getImageData(x * CELL + CELL / 2, y * CELL + CELL / 2, 1, 1).data;
+    const d = ctx.getImageData(
+      x * CELL + CELL / 2,
+      y * CELL + CELL / 2,
+      1,
+      1,
+    ).data;
     return d[3] === 0 ? [255, 255, 255] : [d[0], d[1], d[2]];
   }
 
@@ -553,7 +1106,9 @@
   // (the slider only shows it rounded) makes the copy exact.
   function adoptColor([r, g, b]) {
     const hsv = rgbToHsv(r, g, b);
-    hue = hsv.h; sat = hsv.s; val = hsv.v;
+    hue = hsv.h;
+    sat = hsv.s;
+    val = hsv.v;
     const pct = Math.round(val * 100);
     document.getElementById("value").value = pct;
     document.getElementById("valLabel").textContent = pct + "%";
@@ -565,14 +1120,17 @@
   const RECENTS_MAX = 10;
   const recentsEl = document.getElementById("recents");
 
-  function isHex(c) { return typeof c === "string" && /^#[0-9a-f]{6}$/.test(c); }
+  function isHex(c) {
+    return typeof c === "string" && /^#[0-9a-f]{6}$/.test(c);
+  }
 
   // Anything could be sitting in storage from an older build or another tab, so
   // keep only well-formed entries rather than trusting what we read.
   let recents = [];
   try {
     const saved = JSON.parse(localStorage.getItem(RECENTS_KEY) || "[]");
-    if (Array.isArray(saved)) recents = saved.filter(isHex).slice(0, RECENTS_MAX);
+    if (Array.isArray(saved))
+      recents = saved.filter(isHex).slice(0, RECENTS_MAX);
   } catch {}
 
   function adoptHex(hex) {
@@ -610,7 +1168,9 @@
   function rememberColor(hex) {
     if (!isHex(hex)) return;
     recents = [hex, ...recents.filter((c) => c !== hex)].slice(0, RECENTS_MAX);
-    try { localStorage.setItem(RECENTS_KEY, JSON.stringify(recents)); } catch {}
+    try {
+      localStorage.setItem(RECENTS_KEY, JSON.stringify(recents));
+    } catch {}
     renderRecents();
   }
 
@@ -621,14 +1181,23 @@
 
   // ---- Grid overlay ----
   function drawGridLines() {
-    octx.clearRect(0, 0, SIZE, SIZE);
+    octx.clearRect(0, 0, SIZE_W, SIZE_H);
     if (!showGrid) return;
     octx.strokeStyle = "rgba(0,0,0,0.08)";
     octx.lineWidth = 1;
-    for (let i = 0; i <= GRID; i++) {
+    for (let i = 0; i <= GRID_W; i++) {
       const p = i * CELL + 0.5;
-      octx.beginPath(); octx.moveTo(p, 0); octx.lineTo(p, SIZE); octx.stroke();
-      octx.beginPath(); octx.moveTo(0, p); octx.lineTo(SIZE, p); octx.stroke();
+      octx.beginPath();
+      octx.moveTo(p, 0);
+      octx.lineTo(p, SIZE_H);
+      octx.stroke();
+    }
+    for (let i = 0; i <= GRID_H; i++) {
+      const p = i * CELL + 0.5;
+      octx.beginPath();
+      octx.moveTo(0, p);
+      octx.lineTo(SIZE_W, p);
+      octx.stroke();
     }
   }
   function setGrid(on) {
@@ -636,7 +1205,9 @@
     document.getElementById("gridToggle").checked = on;
     drawGridLines();
   }
-  document.getElementById("gridToggle").addEventListener("change", (e) => setGrid(e.target.checked));
+  document
+    .getElementById("gridToggle")
+    .addEventListener("change", (e) => setGrid(e.target.checked));
 
   // ---- Name label toggle ----
   const nameToggle = document.getElementById("nameToggle");
@@ -649,7 +1220,8 @@
   window.addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.target.tagName === "INPUT") return;
     if (e.key === "g" || e.key === "G") setGrid(!showGrid);
-    if (e.key === "n" || e.key === "N") setNames(document.body.classList.contains("hide-names"));
+    if (e.key === "n" || e.key === "N")
+      setNames(document.body.classList.contains("hide-names"));
     if (e.key === "i" || e.key === "I") setEyedrop(!eyedropping);
   });
   drawGridLines();
@@ -661,10 +1233,13 @@
 
   // ---- Zoom & pan ----
   let zoom = 1;
-  let panX = 0, panY = 0;
+  let panX = 0,
+    panY = 0;
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   // Fit the whole square board inside the (possibly non-square) viewport.
-  function baseScale() { return Math.min(viewport.clientWidth, viewport.clientHeight) / SIZE; }
+  function baseScale() {
+    return Math.min(viewport.clientWidth / SIZE_W, viewport.clientHeight / SIZE_H);
+  }
   // Center the board on an axis when it's smaller than the viewport, else clamp so it stays covered.
   function axis(pan, board, view) {
     if (board <= view) return (view - board) / 2;
@@ -673,32 +1248,70 @@
 
   function positionCursor(c) {
     const eff = baseScale() * zoom;
-    if (c.bx == null) { c.el.style.display = "none"; return; }
-    const sx = panX + c.bx * eff;
-    const sy = panY + c.by * eff;
-    const vw = viewport.clientWidth, vh = viewport.clientHeight;
+    if (c.bx == null || c.rx == null) {
+      c.el.style.display = "none";
+      return;
+    }
+    const sx = panX + c.rx * eff;
+    const sy = panY + c.ry * eff;
+    const vw = viewport.clientWidth,
+      vh = viewport.clientHeight;
     const vis = sx >= -60 && sy >= -20 && sx <= vw + 60 && sy <= vh + 40;
     c.el.style.display = vis ? "block" : "none";
     c.el.style.transform = `translate(${sx}px, ${sy}px)`;
   }
-  function renderAllCursors() { cursors.forEach(positionCursor); }
+  // Samples arrive every cursorThrottleMs, which at the slow end would look like
+  // teleporting. Ease the drawn position toward the last reported one so motion
+  // stays continuous without spending a single extra message on it. Frame-rate
+  // independent, so it behaves the same at 60Hz and 120Hz.
+  const CURSOR_EASE_TAU = 55; // ms to close ~63% of the remaining gap
+  let lastCursorFrame = 0;
+  function animateCursors(t) {
+    requestAnimationFrame(animateCursors);
+    const dt = lastCursorFrame ? Math.min(100, t - lastCursorFrame) : 16;
+    lastCursorFrame = t;
+    const a = 1 - Math.exp(-dt / CURSOR_EASE_TAU);
+    for (const c of cursors.values()) {
+      if (c.bx == null || c.rx == null) continue;
+      const dx = c.bx - c.rx, dy = c.by - c.ry;
+      // Snap once the gap is sub-pixel, so idle cursors stop costing work.
+      if (Math.abs(dx) < 0.02 && Math.abs(dy) < 0.02) {
+        if (c.rx === c.bx && c.ry === c.by) continue;
+        c.rx = c.bx; c.ry = c.by;
+      } else {
+        c.rx += dx * a;
+        c.ry += dy * a;
+      }
+      positionCursor(c);
+    }
+  }
+  requestAnimationFrame(animateCursors);
+
+  function renderAllCursors() {
+    cursors.forEach(positionCursor);
+  }
 
   function applyTransform() {
     const eff = baseScale() * zoom;
-    const boardPx = SIZE * eff;
-    const vw = viewport.clientWidth, vh = viewport.clientHeight;
-    panX = axis(panX, boardPx, vw);
-    panY = axis(panY, boardPx, vh);
+    const boardW = SIZE_W * eff;
+    const boardH = SIZE_H * eff;
+    const vw = viewport.clientWidth,
+      vh = viewport.clientHeight;
+    panX = axis(panX, boardW, vw);
+    panY = axis(panY, boardH, vh);
     wrap.style.transform = `translate(${panX}px, ${panY}px) scale(${eff})`;
-    document.getElementById("zoomLevel").textContent = Math.round(zoom * 100) + "%";
+    document.getElementById("zoomLevel").textContent =
+      Math.round(zoom * 100) + "%";
     renderAllCursors();
   }
 
   function zoomAt(clientX, clientY, factor) {
     const rect = viewport.getBoundingClientRect();
-    const cx = clientX - rect.left, cy = clientY - rect.top;
+    const cx = clientX - rect.left,
+      cy = clientY - rect.top;
     const oldEff = baseScale() * zoom;
-    const lx = (cx - panX) / oldEff, ly = (cy - panY) / oldEff;
+    const lx = (cx - panX) / oldEff,
+      ly = (cy - panY) / oldEff;
     zoom = clamp(zoom * factor, 1, 24);
     const newEff = baseScale() * zoom;
     panX = cx - lx * newEff;
@@ -706,19 +1319,30 @@
     applyTransform();
   }
 
-  viewport.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
-  }, { passive: false });
+  viewport.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+    },
+    { passive: false },
+  );
 
   function zoomCenter(factor) {
     const rect = viewport.getBoundingClientRect();
     zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor);
   }
-  document.getElementById("zoomIn").addEventListener("click", () => zoomCenter(1.3));
-  document.getElementById("zoomOut").addEventListener("click", () => zoomCenter(1 / 1.3));
+  document
+    .getElementById("zoomIn")
+    .addEventListener("click", () => zoomCenter(1.3));
+  document
+    .getElementById("zoomOut")
+    .addEventListener("click", () => zoomCenter(1 / 1.3));
   document.getElementById("zoomReset").addEventListener("click", () => {
-    zoom = 1; panX = 0; panY = 0; applyTransform();
+    zoom = 1;
+    panX = 0;
+    panY = 0;
+    applyTransform();
   });
   window.addEventListener("resize", applyTransform);
   applyTransform();
@@ -726,14 +1350,20 @@
   // Pan: right/middle mouse drag, hold Space + left drag, or a one-finger touch
   // drag. Two fingers pinch to zoom.
   let spaceDown = false;
-  window.addEventListener("keydown", (e) => { if (e.code === "Space") spaceDown = true; });
-  window.addEventListener("keyup", (e) => { if (e.code === "Space") spaceDown = false; });
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") spaceDown = true;
+  });
+  window.addEventListener("keyup", (e) => {
+    if (e.code === "Space") spaceDown = false;
+  });
 
-  const TAP_SLOP = 8;          // movement (px) still counted as a tap, not a drag
-  const pointers = new Map();  // pointerId -> { x, y } for every pointer currently down
-  let panning = false, panStart = null;
-  let pinch = null;            // last two-finger sample: { dist, cx, cy }
-  let gestureStart = null, gestureMoved = false;
+  const TAP_SLOP = 8; // movement (px) still counted as a tap, not a drag
+  const pointers = new Map(); // pointerId -> { x, y } for every pointer currently down
+  let panning = false,
+    panStart = null;
+  let pinch = null; // last two-finger sample: { dist, cx, cy }
+  let gestureStart = null,
+    gestureMoved = false;
 
   function beginPan(x, y) {
     panning = true;
@@ -760,14 +1390,15 @@
       overlay.setPointerCapture(e.pointerId);
       if (pointers.size === 1) beginPan(e.clientX, e.clientY);
       else if (pointers.size === 2) {
-        gestureMoved = true;  // a pinch never places a pixel
+        gestureMoved = true; // a pinch never places a pixel
         panning = false;
         pinch = pinchSample();
       }
       return;
     }
 
-    const usePan = e.button === 1 || e.button === 2 || (e.button === 0 && spaceDown);
+    const usePan =
+      e.button === 1 || e.button === 2 || (e.button === 0 && spaceDown);
     if (!usePan) return;
     e.preventDefault();
     beginPan(e.clientX, e.clientY);
@@ -778,9 +1409,9 @@
   // ---- Placing pixels: one click = one cell, no dragging ----
   function cellAt(e) {
     const rect = overlay.getBoundingClientRect(); // reflects zoom/pan
-    const x = Math.floor(((e.clientX - rect.left) / rect.width) * GRID);
-    const y = Math.floor(((e.clientY - rect.top) / rect.height) * GRID);
-    if (x < 0 || x >= GRID || y < 0 || y >= GRID) return null;
+    const x = Math.floor(((e.clientX - rect.left) / rect.width) * GRID_W);
+    const y = Math.floor(((e.clientY - rect.top) / rect.height) * GRID_H);
+    if (x < 0 || x >= GRID_W || y < 0 || y >= GRID_H) return null;
     return { x, y };
   }
 
@@ -801,14 +1432,34 @@
   });
 
   // ---- Broadcast my cursor (throttled) ----
+  // The server relays every cursor move to every other client, so outbound
+  // volume grows with the square of the room size. A single fixed interval
+  // therefore has to choose between feeling sluggish in a quiet room and
+  // melting a busy one -- so scale it with the roster instead: full speed until
+  // the room is big enough for the fan-out to matter, then back off.
+  //
+  // The room is capped at MAX_USERS, so the curve only has to cover 1..100.
+  // Measured on the deployed box: 200 clients at 200ms (199k msg/s outbound) sat
+  // at 24% of a core, so 100 clients at 40ms (248k msg/s) is comfortably within
+  // reach. That means full speed for any realistic room, easing only near the
+  // ceiling as insurance:
+  //   2-70 users -> 40ms    80 users -> 51ms    100 users -> 80ms
+  const CURSOR_MIN_MS = 40;
+  const CURSOR_MAX_MS = 80;
+  let cursorThrottleMs = CURSOR_MIN_MS;
+  function setCursorRate(userCount) {
+    const n = Math.max(1, userCount);
+    cursorThrottleMs = Math.min(CURSOR_MAX_MS, Math.max(CURSOR_MIN_MS, Math.ceil((n * n) / 125)));
+  }
+
   let lastCursorSend = 0;
   function sendCursor(e) {
     const now = performance.now();
-    if (now - lastCursorSend < 40) return;
+    if (now - lastCursorSend < cursorThrottleMs) return;
     lastCursorSend = now;
     const rect = overlay.getBoundingClientRect();
-    const bx = ((e.clientX - rect.left) / rect.width) * SIZE;
-    const by = ((e.clientY - rect.top) / rect.height) * SIZE;
+    const bx = ((e.clientX - rect.left) / rect.width) * SIZE_W;
+    const by = ((e.clientY - rect.top) / rect.height) * SIZE_H;
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "cursor", x: bx, y: by }));
     }
@@ -818,7 +1469,10 @@
     drawGridLines();
     const cell = cellAt(e);
     const coordEl = document.getElementById("coord");
-    if (!cell) { coordEl.textContent = "—"; return; }
+    if (!cell) {
+      coordEl.textContent = "—";
+      return;
+    }
     coordEl.textContent = `(${cell.x}, ${cell.y})`;
     octx.strokeStyle = "rgba(0,0,0,0.9)";
     octx.lineWidth = 2;
@@ -829,13 +1483,19 @@
     document.getElementById("coord").textContent = "—";
   }
   function hideMyCursor() {
-    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "cursor", x: null, y: null }));
+    if (ws.readyState === WebSocket.OPEN)
+      ws.send(JSON.stringify({ type: "cursor", x: null, y: null }));
   }
 
   overlay.addEventListener("pointermove", (e) => {
-    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (gestureStart && pointers.size &&
-        Math.hypot(e.clientX - gestureStart.x, e.clientY - gestureStart.y) > TAP_SLOP) {
+    if (pointers.has(e.pointerId))
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (
+      gestureStart &&
+      pointers.size &&
+      Math.hypot(e.clientX - gestureStart.x, e.clientY - gestureStart.y) >
+        TAP_SLOP
+    ) {
       gestureMoved = true;
     }
 
@@ -898,6 +1558,8 @@
   });
 
   // ---- WebSocket ----
+  // Mirrors MAX_USERS on the server; only ever used for the message text.
+  let MAX_USERS_HINT = 100;
   const proto = location.protocol === "https:" ? "wss" : "ws";
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
   const connEl = document.getElementById("conn");
@@ -916,10 +1578,11 @@
     label.textContent = name;
     el.append(dot, label);
     cursorsEl.appendChild(el);
-    return { name, bx: null, by: null, el };
+    return { name, bx: null, by: null, rx: null, ry: null, el };
   }
 
   function renderRoster(users) {
+    setCursorRate(users.length);
     const list = document.getElementById("userList");
     document.getElementById("users").textContent = users.length;
     list.innerHTML = "";
@@ -942,39 +1605,77 @@
     }
   }
 
-  ws.onopen = () => { connEl.textContent = "connected"; };
-  ws.onclose = () => { connEl.textContent = "disconnected"; };
+  ws.onopen = () => {
+    connEl.textContent = "connected";
+  };
+  let rejectedAsFull = false;
+  ws.onclose = () => {
+    connEl.textContent = rejectedAsFull
+      ? `room full (${MAX_USERS_HINT} max) — try again shortly`
+      : "disconnected";
+  };
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
+    if (msg.type === "full") {
+      rejectedAsFull = true;
+      MAX_USERS_HINT = msg.max ?? MAX_USERS_HINT;
+      return;
+    }
     if (msg.type === "welcome") {
       myId = msg.id;
       document.getElementById("me").textContent = msg.name;
     } else if (msg.type === "init") {
-      ctx.clearRect(0, 0, SIZE, SIZE);
+      // Indices are decoded with the client's own width, so a server on a
+      // different grid would silently scramble the board -- say so instead.
+      if (msg.gridW !== GRID_W || msg.gridH !== GRID_H) {
+        console.error(
+          `Grid mismatch: server is ${msg.gridW}x${msg.gridH}, client is ${GRID_W}x${GRID_H}. ` +
+            "The board will render incorrectly until both agree.",
+        );
+      }
+      ctx.clearRect(0, 0, SIZE_W, SIZE_H);
       const flat = msg.pixels; // [index, color, index, color, ...]
       for (let i = 0; i < flat.length; i += 2) {
         const index = flat[i];
-        paintCell(index % GRID, Math.floor(index / GRID), flat[i + 1]);
+        paintCell(index % GRID_W, Math.floor(index / GRID_W), flat[i + 1]);
       }
     } else if (msg.type === "pixel") {
       paintCell(msg.x, msg.y, msg.color);
     } else if (msg.type === "clear") {
-      ctx.clearRect(0, 0, SIZE, SIZE);
+      ctx.clearRect(0, 0, SIZE_W, SIZE_H);
     } else if (msg.type === "roster") {
       renderRoster(msg.users);
       const ids = new Set(msg.users.map((u) => u.id));
       for (const [id, c] of cursors) {
-        if (!ids.has(id)) { c.el.remove(); cursors.delete(id); }
+        if (!ids.has(id)) {
+          c.el.remove();
+          cursors.delete(id);
+        }
       }
     } else if (msg.type === "left") {
       const c = cursors.get(msg.id);
-      if (c) { c.el.remove(); cursors.delete(msg.id); }
+      if (c) {
+        c.el.remove();
+        cursors.delete(msg.id);
+      }
     } else if (msg.type === "cursor") {
       if (msg.id === myId) return;
       let c = cursors.get(msg.id);
-      if (msg.x == null) { if (c) { c.bx = null; positionCursor(c); } return; }
-      if (!c) { c = createCursor(msg.id, msg.name); cursors.set(msg.id, c); }
-      c.bx = msg.x; c.by = msg.y;
+      if (msg.x == null) {
+        if (c) {
+          c.bx = null;
+          c.rx = null; // next appearance starts where it actually is
+          positionCursor(c);
+        }
+        return;
+      }
+      if (!c) {
+        c = createCursor(msg.id, msg.name);
+        cursors.set(msg.id, c);
+      }
+      c.bx = msg.x;
+      c.by = msg.y;
+      if (c.rx == null) { c.rx = msg.x; c.ry = msg.y; }
       positionCursor(c);
     }
   };
@@ -987,7 +1688,9 @@
   const pickerNext = picker.nextSibling;
   const fsSlot = document.getElementById("fsPickerSlot");
 
-  function isFs() { return document.body.classList.contains("fs"); }
+  function isFs() {
+    return document.body.classList.contains("fs");
+  }
 
   function enterFs() {
     if (isFs()) return;
@@ -1007,7 +1710,9 @@
       document.exitFullscreen().catch(() => {});
     }
   }
-  function toggleFs() { isFs() ? exitFs() : enterFs(); }
+  function toggleFs() {
+    isFs() ? exitFs() : enterFs();
+  }
 
   document.getElementById("fsEnter").addEventListener("click", enterFs);
   document.getElementById("fsExit").addEventListener("click", exitFs);

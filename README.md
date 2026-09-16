@@ -1,12 +1,50 @@
 # r/place clone
 
-A 100×100 collaborative pixel canvas. Bun WebSocket server, single-file HTML client.
+A 150×180 collaborative pixel canvas (1200×1440px at 8px per cell). Bun WebSocket server, single-file HTML client.
 
 ## Local
 
 ```sh
 bun run dev     # http://localhost:3000, restarts on change
 ```
+
+## Load testing
+
+```sh
+bun run loadtest                      # 100 clients, 20s, against localhost
+bun run loadtest --clients 250 --seconds 30
+bun run loadtest --vps                # the deployed instance, read-only
+bun run loadtest --vps --yes          # skip the countdown
+bun run loadtest --dry-run            # print the resolved config, connect to nothing
+```
+
+The server relays every cursor move to every other client, so outbound volume
+grows with the square of the room size -- that fan-out, not the canvas, is what
+saturates first. Pixels are almost free by comparison: at 200 clients, paints
+alone cost 14% of a core while cursors at 40ms cost 100%.
+
+The room is capped at `MAX_USERS` (100) in `server.ts`; a client arriving at a
+full room gets a `full` message and a `1013` close, and the page says so rather
+than reporting a generic disconnect.
+
+Because the cost is quadratic, the client scales its cursor rate with the roster
+instead of using one fixed interval (`setCursorRate` in `index.html`): 40ms up to
+70 users, easing to 80ms at the 100-user cap. That holds outbound traffic at
+~123k msg/s across the whole range -- the deployed box carried 199k at 24% of a
+core -- while keeping a two-person room as responsive as it ever was. Remote
+cursors are interpolated between samples, so the motion stays smooth even at the
+slower end. `--cursor-ms` overrides the mirrored formula in the load test.
+
+`--vps` points at `VPS_HOST` (default `51.159.117.204`, override with the
+`VPS_HOST` / `VPS_PORT` / `VPS_SCHEME` env vars). Because that is a live server:
+
+- it warns and counts down before connecting (`--yes` skips the countdown),
+- it defaults to a smaller client count and a shorter run,
+- **it does not paint.** Writes would scribble random pixels onto the real
+  canvas, so they need an explicit `--paint`. Read-only runs still report
+  latency, measured from cursor echoes instead of paint echoes.
+
+Any `--url` that is not loopback gets the same treatment.
 
 ## Deploying to a Scaleway instance
 

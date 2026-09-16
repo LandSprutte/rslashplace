@@ -1,9 +1,17 @@
 import type { ServerWebSocket } from "bun";
 import { dirname, join, resolve } from "node:path";
 
-// The canvas is a GRID x GRID array of cells. Each pixel is addressed by
-// index = y * GRID + x. Keep this in sync with the client.
-const GRID = 100;
+// The canvas is a GRID_W x GRID_H array of cells. Each pixel is addressed by
+// index = y * GRID_W + x. Keep these in sync with the client.
+const GRID_W = 150;
+const GRID_H = 180;
+// Snapshots written before the board could be non-square are bare pair lists on
+// an implicit 100x100 grid; their indices need remapping rather than replaying.
+const LEGACY_GRID_W = 100;
+// Hard ceiling on concurrent clients. Cursor relay cost grows with the square of
+// this number, so it is the figure the client's cursor rate is tuned against --
+// raising it means re-checking that tuning, not just this constant.
+const MAX_USERS = 100;
 
 // ---- Deployment config ----
 // PORT/HOST are set by systemd on the server; the defaults are for local dev.
@@ -70,9 +78,23 @@ const pixels = new Map<number, string>();
 // we start from a blank canvas -- never fatal.
 try {
   const saved = await Bun.file(DATA_FILE).json();
-  if (Array.isArray(saved)) {
-    for (const [index, color] of saved) pixels.set(index, color);
-    console.log(`Restored ${pixels.size} pixels from ${DATA_FILE}`);
+  // Two on-disk shapes: the legacy bare array, and {w, h, pixels} which records
+  // the grid it was written against.
+  const sourceWidth = Array.isArray(saved) ? LEGACY_GRID_W : Number(saved?.w);
+  const entries = Array.isArray(saved) ? saved : saved?.pixels;
+  if (Array.isArray(entries) && Number.isInteger(sourceWidth) && sourceWidth > 0) {
+    let dropped = 0;
+    for (const [index, color] of entries) {
+      // Re-derive the coordinates under the width that wrote them, then re-index
+      // for the current one. Anything off the edge of a shrunken board is lost.
+      const x = index % sourceWidth;
+      const y = Math.floor(index / sourceWidth);
+      if (x >= GRID_W || y >= GRID_H) { dropped++; continue; }
+      pixels.set(y * GRID_W + x, color);
+    }
+    const note = sourceWidth === GRID_W ? "" : ` (remapped from a ${sourceWidth}-wide grid)`;
+    console.log(`Restored ${pixels.size} pixels from ${DATA_FILE}${note}`);
+    if (dropped) console.warn(`Dropped ${dropped} pixels outside the ${GRID_W}x${GRID_H} board`);
   }
 } catch {
   // No snapshot yet, or it was unreadable. Start empty.
@@ -84,7 +106,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 async function save() {
   saveTimer = null;
   try {
-    await Bun.write(DATA_FILE, JSON.stringify([...pixels]));
+    await Bun.write(DATA_FILE, JSON.stringify({ w: GRID_W, h: GRID_H, pixels: [...pixels] }));
   } catch (err) {
     console.error("Failed to save canvas:", err);
   }
@@ -136,13 +158,20 @@ const server = Bun.serve<Client, {}>({
   },
   websocket: {
     open(ws) {
+      if (clients.size >= MAX_USERS) {
+        // The name was reserved during the upgrade; hand it back before dropping.
+        usedNames.delete(ws.data.name);
+        ws.send(JSON.stringify({ type: "full", max: MAX_USERS }));
+        ws.close(1013, "room full"); // 1013 = try again later
+        return;
+      }
       clients.add(ws);
       // Tell the newcomer who they are.
       ws.send(JSON.stringify({ type: "welcome", id: ws.data.id, name: ws.data.name }));
       // Send the full canvas snapshot as a flat [index, color, ...] list.
       const snapshot: (number | string)[] = [];
       for (const [index, color] of pixels) snapshot.push(index, color);
-      ws.send(JSON.stringify({ type: "init", grid: GRID, pixels: snapshot }));
+      ws.send(JSON.stringify({ type: "init", gridW: GRID_W, gridH: GRID_H, pixels: snapshot }));
       broadcastRoster();
     },
     message(ws, raw) {
@@ -158,15 +187,15 @@ const server = Bun.serve<Client, {}>({
         const { x, y, color } = data;
         if (
           Number.isInteger(x) && Number.isInteger(y) &&
-          x >= 0 && x < GRID && y >= 0 && y < GRID &&
+          x >= 0 && x < GRID_W && y >= 0 && y < GRID_H &&
           typeof color === "string"
         ) {
-          pixels.set(y * GRID + x, color);
+          pixels.set(y * GRID_W + x, color);
           scheduleSave();
           broadcast(text, ws); // relay to everyone else
         }
       } else if (data.type === "cursor") {
-        // x/y are canvas coordinates (0..800), or null to hide.
+        // x/y are canvas coordinates (0..1200 / 0..1440), or null to hide.
         ws.data.x = data.x;
         ws.data.y = data.y;
         broadcast(
